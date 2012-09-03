@@ -2,13 +2,33 @@ package com.mattlloyd.fountaincodes
 
 object Main extends App {
 
+    // TODO: Replace with a Soliton distribution
     val rng = new RNG(0xBEEFCAFE)
 
-    val file: Seq[IntBlock] = 0 until 10 map {
-        _ => new IntBlock(rng.nextInt)
+    val (meta, file) = FileCreator(CharBlock) { add =>
+        "hello world" foreach add
     }
 
-    val stream = FountainSource.fileToFountainStream(file, rng, IntBlock)
+    println("Created file of size " + meta.filesize)
+
+    var stream = FountainSource.fileToFountainIterator(file, rng, CharBlock)
+
+    // serialize meta and send to client.
 
 
+    var gotRestoredFile = false
+    var packetCount = 0
+
+    def onComplete(s:String) {
+        gotRestoredFile = true
+        println("re-constructed file > "+s)
+        println("packetCount> "+packetCount)
+    }
+
+    val drain = new FountainDrain(meta, onComplete)
+
+    while(! gotRestoredFile) {
+        packetCount += 1
+        drain.recievePacket(stream.next())
+    }
 }

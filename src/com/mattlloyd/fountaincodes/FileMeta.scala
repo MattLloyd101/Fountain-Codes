@@ -1,3 +1,5 @@
 package com.mattlloyd.fountaincodes
 
-case class FileMeta(filesize: Long)
+case class FileMeta[Data, Result](filesize: Long, strat: BlockStrategy[Data, Result])
+
+

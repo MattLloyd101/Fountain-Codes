@@ -1,8 +1,8 @@
 package com.mattlloyd.fountaincodes
 
-case class RNGPacket[DATA](seed: Int, block: Block[DATA]) extends Packet[DATA] {
+case class RNGPacket[Data](seed: Int, block: Block[Data]) extends Packet[Data] {
     lazy val rng = new RNG(seed)
 
-    def encodedBlocks = rng.selectIndexes(1 + rng.nextInt(file.length - 1))
+    def encodedBlocks(fileLen:Long) = rng.selectIndexes(1 + rng.nextInt(fileLen.toInt - 1), fileLen.toInt) map { _.toLong }
 
 }
