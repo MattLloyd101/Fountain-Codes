@@ -32,6 +32,30 @@ object IntBlock extends BlockStrategy[Int, Seq[Int]] {
     def reconstruct(blocks:Seq[Block[Int]]):Seq[Int] = blocks.map { _.data }
 }
 
+object IntBlockToString extends BlockStrategy[Int, String] {
+    case class IntBlock(id:Long, data: Int) extends Block[Int]
+
+    def createBlock(id:Long, data:Int):Block[Int] = IntBlock(id, data)
+
+    def combine(b1: Block[Int], b2: Block[Int]): Block[Int] = {
+//        print("ENCODE ")
+//        print("b1 > " + b1.id)
+//        print(", b2 > " + b2.id)
+//        println(", xor> " + (b1.id ^ b2.id))
+        new IntBlock(b1.id ^ b2.id, b1.data ^ b2.data)
+    }
+
+    def uncombine(b1: Block[Int], b2: Block[Int]): Block[Int] = {
+//        print("DECODE ")
+//        print("b1 > " + b1.id)
+//        print(", b2 > " + b2.id)
+//        println(", xor> " + (b1.id ^ b2.id))
+        new IntBlock(b1.id ^ b2.id, b1.data ^ b2.data)
+    }
+
+    def reconstruct(blocks:Seq[Block[Int]]):String = blocks.foldLeft("") { (out, chr) => out + chr.data.toChar }
+}
+
 object CharBlock extends BlockStrategy[Char, String] {
     case class CharBlock(id:Long, data: Char) extends Block[Char]
 

@@ -9,37 +9,43 @@ class FountainDrain[Data, Result, T](fileMeta: FileMeta[Data,Result], val callba
     var holdingPackets: List[Packet[Data]] = Nil
 
     //http://blog.notdot.net/2012/01/Damn-Cool-Algorithms-Fountain-Codes
-    def recievePacket(packet: Packet[Data]) {
+    def recievePacket(packet: Packet[Data], allowRecurse:Boolean = true) {
         attemptDecode(packet) match {
-            case Some(decodedBlock) if !decoded.contains(decodedBlock.id) => handleDecodedBlock(decodedBlock)
-            case _ => holdingPackets = packet :: holdingPackets
+            case Some(decodedBlock) if !decoded.contains(decodedBlock.id) => handleDecodedBlock(decodedBlock, allowRecurse)
+            case _ =>
+                packet.onHold()
+                holdingPackets = packet :: holdingPackets
         }
     }
 
     protected def attemptDecode(packet:Packet[Data]):Option[Block[Data]] = {
         val blocks = packet.encodedBlocks(fileMeta.filesize)
-        if(blocks.length == 1) {
+        if(blocks.length == 1)
             Some(packet.block)
-        } else {
+        else
             blocks.foldLeft (Some(packet.block):Option[Block[Data]]) { (out, blockNum) =>
                 (out, decoded.get(blockNum)) match {
                     case (Some(currentBlock), Some(block)) => Some(fileMeta.strat.uncombine(currentBlock, block))
                     case _ => None
                 }
             }
-        }
     }
 
-    protected def handleDecodedBlock(decodedBlock:Block[Data]) = {
+    protected def handleDecodedBlock(decodedBlock:Block[Data], allowRecurse:Boolean) = {
         println("Decoded block! > " + decodedBlock.id)
-        decodedCount += 1
         decoded = decoded + (decodedBlock.id -> decodedBlock)
-        holdingPackets foreach recievePacket
+        if(allowRecurse) holdingPackets foreach { p => recievePacket(p, false) }
+        decodedCount += 1
 
-        println("decodedCount > "+decodedCount)
-        println("fileMeta.filesize > "+fileMeta.filesize)
-        if(decodedCount == fileMeta.filesize) {
-            callback(reconstruct)
+//        println("decodedCount > "+decodedCount)
+//        println("fileMeta.filesize > "+fileMeta.filesize)
+        if(decodedCount >= fileMeta.filesize) {
+            try {
+                val out = reconstruct
+                callback(out)
+            } catch {
+                case _ =>
+            }
         }
     }
 

@@ -4,7 +4,7 @@ object FountainSource {
 
     // Streams are elegant but flawed in that they cannot resize the stream. Once loaded always in memory.
     def fileToFountainStream[Data, Result](file: Seq[Block[Data]], d: Int, rng: RNG, blockStrategy: BlockStrategy[Data, Result]): Stream[Packet[Data]] = {
-        new RNGPacket(rng.seed, blockStrategy.combine(rng.select(file, d))) #:: fileToFountainStream(file, rng.nextRng, blockStrategy)
+        new RNGPacket[Data](rng.seed, blockStrategy.combine(rng.select(file, d))) #:: fileToFountainStream(file, rng.nextRng, blockStrategy)
     }
 
 
@@ -16,8 +16,8 @@ object FountainSource {
         var rng = initRng
         def hasNext = true
         def next() = {
-            val d = 1 + rng.nextInt(file.length - 1)
-            val next = new RNGPacket(rng.seed, blockStrategy.combine(rng.select(file, d)))
+            val encodedBlocks = rng.encodedBlocks(file.length) map { _.toInt }
+            val next = new RNGPacket[Data](rng.seed, blockStrategy.combine(encodedBlocks map file))
             rng = rng.nextRng
             next
         }

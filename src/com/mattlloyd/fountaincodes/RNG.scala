@@ -19,18 +19,19 @@ class RNG(val seed: Int) {
         case n => nextInt(max) :: selectIndexes(n - 1, max)
     }
 
-    def select[A](list: Seq[A], n: Int) = {
-        val indexes = selectIndexes(n, list.length)
-        //println("indexes generated> " + indexes)
-        indexes map {
-            l =>
-            // TODO: lists can't handle Long indexes...
-                list(l)
-        }
+    def select[A](list: Seq[A], n: Int) = selectIndexes(n, list.length) map list
+
+    def encodedBlocks(fileLen:Long) = {
+        selectIndexes(1 + nextInt(fileLen.toInt - 1), fileLen.toInt) map { _.toLong }
     }
 
     def nextSeed = nextInt
 
     def nextRng = new RNG(nextSeed)
+
+    def soliton(n:Int, max:Int) = n match {
+        case 1 => 1 / max
+        case k => 1 / (k * (k - 1))
+    }
 
 }
