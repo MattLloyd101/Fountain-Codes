@@ -17,6 +17,7 @@ object FountainSource {
         def hasNext = true
         def next() = {
             val encodedBlocks = rng.encodedBlocks(file.length) map { _.toInt }
+//            println("In  blockLen> "+encodedBlocks.length)
             val next = new RNGPacket[Data](rng.seed, blockStrategy.combine(encodedBlocks map file))
             rng = rng.nextRng
             next

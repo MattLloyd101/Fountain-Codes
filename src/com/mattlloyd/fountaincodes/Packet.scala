@@ -5,5 +5,5 @@ abstract class Packet[DATA] {
 
     def onHold()
 
-    def encodedBlocks(fileLen:Long):Seq[Long]
+    def encodedBlockIds(fileLen:Long):Seq[Long]
 }

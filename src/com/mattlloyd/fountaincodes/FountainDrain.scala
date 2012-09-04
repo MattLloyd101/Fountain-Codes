@@ -6,45 +6,51 @@ class FountainDrain[Data, Result, T](fileMeta: FileMeta[Data,Result], val callba
 
     var decodedCount:Long = 0L
     var decoded: Map[Long, Block[Data]] = Map[Long, Block[Data]]()
-    var holdingPackets: List[Packet[Data]] = Nil
+    var holdingPackets: Set[Packet[Data]] = Set.empty
 
     //http://blog.notdot.net/2012/01/Damn-Cool-Algorithms-Fountain-Codes
-    def recievePacket(packet: Packet[Data], allowRecurse:Boolean = true) {
+    def recievePacket(packet: Packet[Data]) {
         attemptDecode(packet) match {
-            case Some(decodedBlock) if !decoded.contains(decodedBlock.id) => handleDecodedBlock(decodedBlock, allowRecurse)
+            case Some(decodedBlock) if !decoded.contains(decodedBlock.id) => handleDecodedBlock(decodedBlock)
             case _ =>
                 packet.onHold()
-                holdingPackets = packet :: holdingPackets
+                holdingPackets = holdingPackets + packet
         }
     }
 
     protected def attemptDecode(packet:Packet[Data]):Option[Block[Data]] = {
-        val blocks = packet.encodedBlocks(fileMeta.filesize)
+        val blocks = packet.encodedBlockIds(fileMeta.filesize)
         if(blocks.length == 1)
             Some(packet.block)
-        else
-            blocks.foldLeft (Some(packet.block):Option[Block[Data]]) { (out, blockNum) =>
+        else {
+            // we use init as the last one is the same as packet.block. so would == 0 otherwise.
+            blocks.init.foldLeft (Some(packet.block):Option[Block[Data]]) { (out, blockNum) =>
                 (out, decoded.get(blockNum)) match {
                     case (Some(currentBlock), Some(block)) => Some(fileMeta.strat.uncombine(currentBlock, block))
                     case _ => None
                 }
             }
+        }
     }
 
-    protected def handleDecodedBlock(decodedBlock:Block[Data], allowRecurse:Boolean) = {
-        println("Decoded block! > " + decodedBlock.id)
+    protected def handleDecodedBlock(decodedBlock:Block[Data]) = {
+//        println("Decoded block! > " + decodedBlock.id)
         decoded = decoded + (decodedBlock.id -> decodedBlock)
-        if(allowRecurse) holdingPackets foreach { p => recievePacket(p, false) }
+
+        val tmp = holdingPackets
+        holdingPackets = Set.empty
+        tmp foreach { p => recievePacket(p) }
+
         decodedCount += 1
 
 //        println("decodedCount > "+decodedCount)
 //        println("fileMeta.filesize > "+fileMeta.filesize)
         if(decodedCount >= fileMeta.filesize) {
             try {
-                val out = reconstruct
-                callback(out)
+                callback(reconstruct)
             } catch {
-                case _ =>
+                case _:Error =>
+                case _:Exception =>
             }
         }
     }

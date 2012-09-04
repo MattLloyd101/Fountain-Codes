@@ -7,9 +7,8 @@ object FileCreator {
         var n:Long = 0L
         var file: List[Block[Data]] = Nil
 
-        def add(data:Data) { file = file :+ strat.createBlock({ val t = n; n += 1; t }, data)}
+        def add(data:Data) { file = file :+ strat.createBlock({ val t = n; n += 1; t }, data) }
         body(add)
-
         (FileMeta(file.length.toLong, strat), file)
     }
 }
